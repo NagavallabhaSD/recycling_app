@@ -66,7 +66,7 @@ const getCategoryIcon = (material: string) => {
   const icons: Record<string, any> = {
     Battery: Battery,
     Cardboard: Package,
-    Electronic: "CircuitBoard",
+    Electronic: Wrench,   // fallback icon instead of invalid string
     Fabric: Shirt,
     Glass: Wine,
     Metal: Wrench,
@@ -74,9 +74,13 @@ const getCategoryIcon = (material: string) => {
     Organic: Leaf,
     Paper: FileText,
     Plastic: Recycle,
+    Footwear: Shirt,      // your model predicts this
   }
+
   return icons[material] || Trash2
 }
+
+
 
 const getCategoryColor = (material: string) => {
   const colors: Record<string, string> = {
