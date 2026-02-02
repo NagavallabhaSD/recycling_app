@@ -63,11 +63,34 @@ export async function POST(req: Request) {
     }
 
     // Convert to frontend format
-    const formatted = predictions.map((p: any) => ({
-      material: p.class || p.label || "Unknown",
-      confidence: p.confidence || p.score || 0,
-      points: Math.round((p.confidence || p.score || 0) * 20),
-    }))
+    console.log("[ML] First prediction object:", predictions[0])
+
+const formatted = predictions.map((p: any) => {
+  // Log every key Roboflow gives us
+  console.log("[ML Prediction Keys]", Object.keys(p))
+
+  return {
+    material:
+      p.class ||
+      p.label ||
+      p.top ||
+      p.predicted_class ||
+      p.name ||
+      "Unknown",
+
+    confidence:
+      p.confidence ||
+      p.score ||
+      p.probability ||
+      p.value ||
+      0,
+
+    points: Math.round(
+      (p.confidence || p.score || p.probability || p.value || 0) * 20
+    ),
+  }
+})
+
 
     // Sort highest confidence first
     formatted.sort((a, b) => b.confidence - a.confidence)
