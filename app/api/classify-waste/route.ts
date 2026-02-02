@@ -28,32 +28,38 @@ export async function POST(req: Request) {
   }
 
   const data = await mlResponse.json()
+
   console.log("[ROBOFLOW RAW RESPONSE]", Object.keys(data))
 
-  const output = data.outputs?.[0]
+  // 🔹 Safely get classification predictions
+  const classificationBlock = data.outputs?.[0]?.predictions
 
-  if (!output) {
-    return NextResponse.json({ error: "No output from model" }, { status: 200 })
+  if (!classificationBlock) {
+    console.warn("[ML] No classification block found")
+    return NextResponse.json({ top: null, all: [] }, { status: 200 })
   }
 
-  const classification = output.predictions
+  const predictionsArray = classificationBlock.predictions
 
-  if (!classification || !classification.top) {
-    return NextResponse.json({ error: "No classification result" }, { status: 200 })
+  if (!Array.isArray(predictionsArray) || predictionsArray.length === 0) {
+    console.warn("[ML] No predictions array found")
+    return NextResponse.json({ top: null, all: [] }, { status: 200 })
   }
 
-  const material = classification.top
-  const confidence = classification.confidence ?? 0
+  // 🔹 Convert Roboflow predictions → Frontend format
+  const formattedResults = predictionsArray.map((p: any) => ({
+    material: p.class || "Unknown",
+    confidence: p.confidence || 0,
+    points: Math.round((p.confidence || 0) * 20),
+  }))
 
-  console.log("[ML RESULT]", material, confidence)
+  // Sort by confidence highest first
+  formattedResults.sort((a, b) => b.confidence - a.confidence)
+
+  console.log("[ML] Formatted Results:", formattedResults)
 
   return NextResponse.json({
-    all: [
-      {
-        material,
-        confidence,
-        points: Math.round(confidence * 20),
-      },
-    ],
+    top: formattedResults[0],
+    all: formattedResults,
   })
 }
