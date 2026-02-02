@@ -33,5 +33,7 @@ export async function POST(req: Request) {
   }
 
   const data = await mlResponse.json()
+  console.log("ROBOFLOW RESPONSE:", JSON.stringify(data, null, 2))
   return NextResponse.json(data)
+
 }
