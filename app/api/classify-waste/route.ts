@@ -24,46 +24,36 @@ export async function POST(req: Request) {
   if (!mlResponse.ok) {
     const text = await mlResponse.text()
     console.error("[ROBOFLOW ERROR]", text)
-    return NextResponse.json({ error: "Roboflow API error", details: text }, { status: 500 })
+    return NextResponse.json({ error: "Roboflow API error" }, { status: 500 })
   }
 
   const data = await mlResponse.json()
   console.log("[ROBOFLOW RAW RESPONSE]", Object.keys(data))
 
-  let predictionsRaw = data.outputs?.[0]?.predictions
+  const output = data.outputs?.[0]
 
-  if (!predictionsRaw) {
-    return NextResponse.json({ error: "No predictions returned" }, { status: 200 })
+  if (!output) {
+    return NextResponse.json({ error: "No output from model" }, { status: 200 })
   }
 
-  // If predictions come nested (your case)
-  if (predictionsRaw.predictions) {
-    const topClass = predictionsRaw.top || "Unknown"
-    const confidence = predictionsRaw.confidence || 0
+  const classification = output.predictions
 
-    return NextResponse.json({
-      all: [
-        {
-          material: topClass,
-          confidence,
-          points: Math.round(confidence * 20),
-        },
-      ],
-    })
+  if (!classification || !classification.top) {
+    return NextResponse.json({ error: "No classification result" }, { status: 200 })
   }
 
-  // Fallback if ever array format
-  if (Array.isArray(predictionsRaw)) {
-    const formatted = predictionsRaw.map((p: any) => ({
-      material: p.class || p.label || "Unknown",
-      confidence: p.confidence || p.score || 0,
-      points: Math.round((p.confidence || p.score || 0) * 20),
-    }))
+  const material = classification.top
+  const confidence = classification.confidence ?? 0
 
-    formatted.sort((a, b) => b.confidence - a.confidence)
+  console.log("[ML RESULT]", material, confidence)
 
-    return NextResponse.json({ all: formatted })
-  }
-
-  return NextResponse.json({ error: "Unexpected prediction format" }, { status: 200 })
+  return NextResponse.json({
+    all: [
+      {
+        material,
+        confidence,
+        points: Math.round(confidence * 20),
+      },
+    ],
+  })
 }
