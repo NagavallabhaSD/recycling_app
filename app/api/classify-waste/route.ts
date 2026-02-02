@@ -34,20 +34,29 @@ export async function POST(req: Request) {
 
   const data = await mlResponse.json()
 
-// Roboflow workflow returns an array under outputs[0]
-const predictions = data.outputs?.[0]?.predictions || []
+// Grab predictions safely (handle array or nested object)
+let predictions = data.outputs?.[0]?.predictions
+
+if (!predictions) {
+  return NextResponse.json({ error: "No predictions returned" }, { status: 200 })
+}
+
+// If predictions is an object, extract its values
+if (!Array.isArray(predictions)) {
+  predictions = Object.values(predictions)
+}
 
 if (predictions.length === 0) {
   return NextResponse.json({ error: "No waste detected" }, { status: 200 })
 }
 
-// Take highest confidence prediction
-const top = predictions.sort((a: any, b: any) => b.confidence - a.confidence)[0]
+// Pick highest confidence
+const top = predictions.reduce((best: any, current: any) =>
+  current.confidence > best.confidence ? current : best
+)
 
 return NextResponse.json({
   class: top.class,
   confidence: top.confidence,
 })
-
-
 }
