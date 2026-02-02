@@ -8,19 +8,26 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid image" }, { status: 400 })
   }
 
-  const forwardData = new FormData()
-  forwardData.append("file", image, image.name)
+  const base64 = Buffer.from(await image.arrayBuffer()).toString("base64")
 
-  const mlResponse = await fetch(`${process.env.ML_API_URL}/classify`, {
+  const mlResponse = await fetch(process.env.ROBOFLOW_WORKFLOW_URL!, {
     method: "POST",
-    body: forwardData,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      api_key: process.env.ROBOFLOW_API_KEY,
+      inputs: {
+        image: { type: "base64", value: base64 },
+      },
+    }),
   })
 
   if (!mlResponse.ok) {
     const text = await mlResponse.text()
-    console.error("[ML ERROR]", text)
+    console.error("[ROBOFLOW ERROR]", text)
     return NextResponse.json(
-      { error: "ML server error", details: text },
+      { error: "Roboflow API error", details: text },
       { status: 500 }
     )
   }
