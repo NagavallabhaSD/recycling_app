@@ -33,7 +33,13 @@ export async function POST(req: Request) {
   }
 
   const data = await mlResponse.json()
-  console.log("ROBOFLOW RESPONSE:", JSON.stringify(data, null, 2))
-  return NextResponse.json(data)
+
+// Log only prediction parts to avoid huge logs
+console.log("RF KEYS:", Object.keys(data))
+console.log("RF OUTPUTS:", Object.keys(data.outputs || {}))
+console.log("RF CLASSIFICATIONS:", data.outputs?.classification_predictions)
+console.log("RF DETECTIONS:", data.outputs?.detection_predictions)
+
+return NextResponse.json(data)
 
 }
