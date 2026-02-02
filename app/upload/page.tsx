@@ -364,45 +364,53 @@ export default function UploadPage() {
   }
 
   const classifyWithML = async (file: File) => {
-    setIsAnalyzing(true)
+  setIsAnalyzing(true)
 
-    try {
-      console.log("[ML] 🤖 Sending image to backend")
+  try {
+    console.log("[ML] 🤖 Sending image to backend")
 
-      const formData = new FormData()
-      formData.append("image", file)
+    const formData = new FormData()
+    formData.append("image", file)
 
-      const response = await fetch("/api/classify-waste", {
-        method: "POST",
-        body: formData,
-      })
+    const response = await fetch("/api/classify-waste", {
+      method: "POST",
+      body: formData,
+    })
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(errorText)
-      }
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(errorText)
+    }
 
-      const data = await response.json()
-      console.log("[ML] ✅ Response:", data)
+    const data = await response.json()
+    console.log("[ML] ✅ Response:", data)
 
-      // ML server returns: { top, all }
-      const formattedResults = data.all.map((item: any) => ({
-        material: item.material,
-        confidence: item.confidence,
-        points: Math.round(item.confidence * 20),
-      }))
-
-      setDetectionResults(formattedResults)
-      setTopMaterial(formattedResults[0])
-    } catch (error: any) {
-      console.error("[ML] ❌ Classification failed:", error.message)
+    // 🛑 If backend didn't return predictions, stop safely
+    if (!data.all || !Array.isArray(data.all) || data.all.length === 0) {
+      console.warn("[ML] No predictions returned")
       setDetectionResults([])
       setTopMaterial(null)
-      throw error
-    } finally {
-      setIsAnalyzing(false)
+      return
     }
+
+    // ✅ Convert backend format → UI format
+    const formattedResults = data.all.map((item: any) => ({
+      material: item.material ?? "Unknown",
+      confidence: item.confidence ?? 0,
+      points: Math.round((item.confidence ?? 0) * 20),
+    }))
+
+    setDetectionResults(formattedResults)
+    setTopMaterial(formattedResults[0]) // highest confidence first
+  } catch (error: any) {
+    console.error("[ML] ❌ Classification failed:", error.message)
+    setDetectionResults([])
+    setTopMaterial(null)
+  } finally {
+    setIsAnalyzing(false)
   }
+}
+
 
   const handleGalleryUpload = async (file: File) => {
     setCaptureMethod("gallery")
